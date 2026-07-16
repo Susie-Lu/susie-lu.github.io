@@ -1,0 +1,3015 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DriftWorld</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <header class="hero">
+    <div class="container">
+      <h1 class="title">DriftWorld: Fast World Modeling through Drifting</h1>
+      <p class="meta">
+        Susie Lu<sup>1</sup>, Haonan Chen<sup>2</sup>, Weirui Ye<sup>1</sup>, Yilun Du<sup>2</sup>
+      </p>
+      <p class="affiliations">
+        <sup>1</sup>Massachusetts Institute of Technology&emsp;
+        <sup>2</sup>Harvard University&emsp;
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="./" target="_blank" rel="noopener">Paper</a>
+        <a class="btn btn-secondary" href="./">Code</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="abstract" class="section">
+      <div class="container narrow">
+        <h2 class="section-title">Abstract</h2>
+        <p class="lead">
+          Predictive world models enable robots to plan by imagining the outcomes of their actions, but their value for
+          control hinges on generating many rollouts quickly. This creates a bottleneck for diffusion-based world
+          models: multi-step sampling makes each rollout expensive, limiting large-scale action search at inference
+          time. We introduce <b>DriftWorld</b>, an action-conditioned world model based on <em>drifting generative
+            models</em>. Rather than denoising iteratively at inference, DriftWorld learns an action-conditioned drift
+          during
+          training, allowing it to generate future frames from the current observation and a candidate action sequence
+          in a single forward pass at <b>30+ fps</b>, which is 17× faster on average than diffusion-based
+          baselines. We evaluate DriftWorld on standard vision-based robotic manipulation benchmarks, including
+          Bridge-V2, RT-1, Language Table, Push-T, and Robomimic. By producing rollouts that are both accurate and fast,
+          DriftWorld achieves state-of-the-art decision-making performance with far less inference time than
+          diffusion-based world model baselines. Beyond online control, DriftWorld can also serve as an offline
+          simulator for ranking real-world robot policies, with rollout-based scores correlating with ground truth at up
+          to 0.99. These results show that drifting models are a strong fit for robot world modeling, where fast,
+          high-quality imagination directly supports planning and policy evaluation.
+        </p>
+      </div>
+    </section>
+
+    <figure style="margin: 0 auto; text-align: center;">
+      <img src="videos/Fig/Teaser.png" alt="DriftWorld teaser"
+        style="width: 45%; height: auto; display: block; margin: 0 auto; border-radius: 8px;">
+
+      <figcaption style="margin: 16px auto 0; width: 45%; display: block; text-align: left;">
+        <b>Overview of DriftWorld.</b> DriftWorld is an action-conditioned world model based on drifting that generates
+        future frames in a single forward pass. It achieves 30+ fps generation on a single H100 GPU, which is
+        significantly faster than
+        existing models on all five environments. DriftWorld can be used for high-quality generation, efficient
+        planning, and offline simulation of policies.
+      </figcaption>
+    </figure>
+
+    <section id="scripted-demos" class="section scripted-demo-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Demos on Bridge-V2 and RT-1</h2>
+          <p class="section-desc">
+            DriftWorld generates different videos from the same initial frame based on the actions taken.
+            Select an action sequence below to view the corresponding generated video.
+            (We provide a text description of the actions for simplicity.)
+          </p>
+        </div>
+
+        <div class="scripted-demo-grid scripted-bridge-row">
+          <div class="compare-card scripted-demo-card">
+            <h3 class="scripted-demo-caption">Bridge-V2: Initial frame</h3>
+            <img class="scripted-demo-image" src="videos/Demo_Bridge/scene_1/frame0.png"
+              alt="Initial Bridge-V2 scene frame">
+
+            <div class="scripted-demo-actions" aria-label="Scripted Bridge-V2 target block selection">
+              <h3>Towards:</h3>
+              <button class="scripted-action-button selected" type="button" aria-pressed="true"
+                data-video="videos/Demo_Bridge/scene_1/yellow.mp4">Yellow</button>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_Bridge/scene_1/blue.mp4">Blue</button>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_Bridge/scene_1/beige.mp4">Beige</button>
+            </div>
+
+            <div class="scripted-demo-video">
+              <h3>Generated video</h3>
+              <video class="scripted-result-video" controls autoplay muted playsinline preload="metadata"
+                src="videos/Demo_Bridge/scene_1/yellow.mp4">
+              </video>
+            </div>
+          </div>
+
+          <div class="compare-card scripted-demo-card">
+            <h3 class="scripted-demo-caption">Bridge-V2: Initial frame</h3>
+            <img class="scripted-demo-image" src="videos/Demo_Bridge/scene_2/frame0.png"
+              alt="Initial Bridge-V2 scene frame">
+
+            <div class="scripted-demo-actions" aria-label="Scripted Bridge-V2 target object selection">
+              <h3>Towards:</h3>
+              <button class="scripted-action-button selected" type="button" aria-pressed="true"
+                data-video="videos/Demo_Bridge/scene_2/bottle.mp4">Yellow</button>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_Bridge/scene_2/block.mp4">Green</button>
+            </div>
+
+            <div class="scripted-demo-video">
+              <h3>Generated video</h3>
+              <video class="scripted-result-video" controls autoplay muted playsinline preload="metadata"
+                src="videos/Demo_Bridge/scene_2/bottle.mp4">
+              </video>
+            </div>
+          </div>
+
+          <div class="compare-card scripted-demo-card">
+            <h3 class="scripted-demo-caption">Bridge-V2: Initial frame</h3>
+            <img class="scripted-demo-image" src="videos/Demo_Bridge/scene_3/frame0.png"
+              alt="Initial Bridge-V2 scene frame">
+
+            <div class="scripted-demo-actions" aria-label="Scripted Bridge-V2 wipe direction selection">
+              <h3>Wipe:</h3>
+              <div class="scripted-action-rows">
+                <button class="scripted-action-button selected" type="button" aria-pressed="true"
+                  data-video="videos/Demo_Bridge/scene_3/left.mp4">Left</button>
+                <button class="scripted-action-button" type="button" aria-pressed="false"
+                  data-video="videos/Demo_Bridge/scene_3/right.mp4">Right</button>
+                <button class="scripted-action-button" type="button" aria-pressed="false"
+                  data-video="videos/Demo_Bridge/scene_3/forward.mp4">Forward</button>
+                <button class="scripted-action-button" type="button" aria-pressed="false"
+                  data-video="videos/Demo_Bridge/scene_3/backward.mp4">Back</button>
+              </div>
+            </div>
+
+            <div class="scripted-demo-video">
+              <h3>Generated video</h3>
+              <video class="scripted-result-video" controls autoplay muted playsinline preload="metadata"
+                src="videos/Demo_Bridge/scene_3/left.mp4">
+              </video>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="scripted-demo-grid scripted-rt1-row">
+          <div class="compare-card scripted-demo-card">
+            <h3 class="scripted-demo-caption">RT-1: Initial frame</h3>
+            <img class="scripted-demo-image" src="videos/Demo_RT1/scene_1/frame0.png" alt="Initial RT-1 scene frame">
+
+            <div class="scripted-demo-actions" aria-label="Scripted RT-1 left action selection">
+              <h3>Action:</h3>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_RT1/scene_1/left1.mp4">Left x 1</button>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_RT1/scene_1/left2.mp4">Left x 2</button>
+              <button class="scripted-action-button selected" type="button" aria-pressed="true"
+                data-video="videos/Demo_RT1/scene_1/left3.mp4">Left x 3</button>
+            </div>
+
+            <div class="scripted-demo-video">
+              <h3>Generated video</h3>
+              <video class="scripted-result-video" controls autoplay muted playsinline preload="metadata"
+                src="videos/Demo_RT1/scene_1/left3.mp4">
+
+              </video>
+            </div>
+          </div>
+
+          <div class="compare-card scripted-demo-card">
+            <h3 class="scripted-demo-caption">RT-1: Initial frame</h3>
+            <img class="scripted-demo-image" src="videos/Demo_RT1/scene_2/frame0.png" alt="Initial RT-1 scene frame">
+
+            <div class="scripted-demo-actions" aria-label="Scripted RT-1 out action selection">
+              <h3>Action:</h3>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_RT1/scene_2/out1.mp4">Out x 1</button>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_RT1/scene_2/out2.mp4">Out x 2</button>
+              <button class="scripted-action-button selected" type="button" aria-pressed="true"
+                data-video="videos/Demo_RT1/scene_2/out3.mp4">Out x 3</button>
+            </div>
+
+            <div class="scripted-demo-video">
+              <h3>Generated video</h3>
+              <video class="scripted-result-video" controls autoplay muted playsinline preload="metadata"
+                src="videos/Demo_RT1/scene_2/out3.mp4">
+
+              </video>
+            </div>
+          </div>
+
+          <div class="compare-card scripted-demo-card">
+            <h3 class="scripted-demo-caption">RT-1: Initial frame</h3>
+            <img class="scripted-demo-image" src="videos/Demo_RT1/scene_3/frame0.png" alt="Initial RT-1 scene frame">
+
+            <div class="scripted-demo-actions" aria-label="Scripted RT-1 out action selection">
+              <h3>Action:</h3>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_RT1/scene_3/up.mp4">Up</button>
+              <button class="scripted-action-button" type="button" aria-pressed="false"
+                data-video="videos/Demo_RT1/scene_3/diagonalright.mp4">Straight</button>
+              <button class="scripted-action-button selected" type="button" aria-pressed="true"
+                data-video="videos/Demo_RT1/scene_3/diagonal.mp4">Diagonal</button>
+            </div>
+
+            <div class="scripted-demo-video">
+              <h3>Generated video</h3>
+              <video class="scripted-result-video" controls autoplay muted playsinline preload="metadata"
+                src="videos/Demo_RT1/scene_3/diagonal.mp4">
+
+              </video>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <style>
+        .scripted-demo-section .container {
+          max-width: 1360px;
+        }
+
+        .scripted-demo-section .scripted-demo-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 420px));
+          gap: 24px;
+          justify-content: center;
+          align-items: start;
+        }
+
+        .scripted-demo-section .scripted-demo-card {
+          width: 100%;
+          max-width: 420px;
+          margin: 0;
+          padding: 24px;
+          background: var(--surface);
+          border-color: var(--line);
+          box-shadow: var(--shadow-md);
+        }
+
+        .scripted-demo-section .scripted-demo-image,
+        .scripted-demo-section .scripted-result-video {
+          display: block;
+          width: 100%;
+          max-width: 250px;
+          margin: 0 auto;
+          border-radius: var(--radius-sm);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .scripted-demo-section .scripted-demo-actions {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin: 24px 0;
+        }
+
+        .scripted-demo-section .scripted-demo-caption,
+        .scripted-demo-section .scripted-demo-actions h3,
+        .scripted-demo-section .scripted-demo-video h3 {
+          margin: 0;
+          color: var(--ink-soft);
+          font-size: 1rem;
+          font-weight: 600;
+        }
+
+        .scripted-demo-section .scripted-action-button {
+          border: 1px solid var(--line);
+          background: var(--bg);
+          color: var(--ink);
+          padding: 9px 16px;
+          border-radius: 6px;
+          font-family: inherit;
+          font-size: .95rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background .15s, border-color .15s, color .15s, transform .1s;
+        }
+
+        .scripted-demo-section .scripted-action-button:hover {
+          border-color: #c7c7c2;
+          background: #f0f0ed;
+        }
+
+        .scripted-demo-section .scripted-action-button.selected {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #fff;
+        }
+
+        .scripted-demo-section .scripted-action-button:active {
+          transform: translateY(1px);
+        }
+
+        .scripted-demo-section .scripted-demo-video {
+          text-align: center;
+        }
+
+        .scripted-demo-section .scripted-demo-caption,
+        .scripted-demo-section .scripted-demo-video h3 {
+          margin-bottom: 12px;
+        }
+
+        .scripted-demo-section .scripted-demo-caption {
+          text-align: center;
+        }
+
+        /* Bridge row sits directly above the RT-1 row, separated by a little more than the
+           within-row card gap. */
+        .scripted-demo-section .scripted-demo-grid+.scripted-demo-grid {
+          margin-top: 32px;
+        }
+
+        /* The wipe card fits four buttons on one row by giving back its side padding, rather than
+           by being wider than the other cards. Top/bottom padding is untouched so heights match. */
+        .scripted-bridge-row .scripted-demo-card:nth-child(3) {
+          padding: 24px 16px;
+        }
+
+        .scripted-demo-section .scripted-action-rows {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 6px;
+        }
+
+        /* Vertical padding stays at the shared 9px so this row is exactly as tall as the other
+           cards' rows; only the horizontal padding shrinks. */
+        .scripted-demo-section .scripted-action-rows .scripted-action-button {
+          padding: 9px 10px;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 1360px) {
+          .scripted-demo-section .scripted-demo-grid {
+            grid-template-columns: repeat(2, minmax(0, 420px));
+          }
+        }
+
+        @media (max-width: 920px) {
+          .scripted-demo-section .scripted-demo-grid {
+            grid-template-columns: minmax(0, 420px);
+          }
+        }
+
+        @media (max-width: 640px) {
+          .scripted-demo-section .scripted-demo-card {
+            padding: 18px;
+          }
+
+          .scripted-demo-section .scripted-demo-actions {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .scripted-demo-section .scripted-action-button {
+            width: 100%;
+          }
+
+          .scripted-demo-section .scripted-action-rows {
+            width: 100%;
+            flex-direction: column;
+          }
+        }
+      </style>
+
+      <script>
+        (() => {
+          function init() {
+            document.querySelectorAll('.scripted-demo-card').forEach((card) => {
+              const video = card.querySelector('.scripted-result-video');
+              const buttons = Array.from(card.querySelectorAll('.scripted-action-button[data-video]'));
+              if (!video || buttons.length === 0) return;
+
+              function playVideo() {
+                const playPromise = video.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                  playPromise.catch(() => { });
+                }
+              }
+
+              function restartVideo() {
+                try {
+                  video.currentTime = 0;
+                } catch (error) {
+                }
+                playVideo();
+              }
+
+              buttons.forEach((button) => {
+                button.addEventListener('click', () => {
+                  buttons.forEach((otherButton) => {
+                    const selected = otherButton === button;
+                    otherButton.classList.toggle('selected', selected);
+                    otherButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                  });
+
+                  if (video.getAttribute('src') !== button.dataset.video) {
+                    video.setAttribute('src', button.dataset.video);
+                    video.load();
+                  }
+
+                  if (video.readyState >= 1) {
+                    restartVideo();
+                  } else {
+                    video.addEventListener('loadedmetadata', restartVideo, { once: true });
+                  }
+                });
+              });
+            });
+          }
+
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init, { once: true });
+          } else {
+            init();
+          }
+        })();
+      </script>
+    </section>
+
+    <section id="results" class="section">
+      <div class="container">
+
+        <div class="section-header">
+          <h2 class="section-title">Visualization of World Modeling</h2>
+          <p class="section-desc">
+            DriftWorld matches or outperforms action-conditioned world model baselines in terms of visual generation
+            quality, while operating at a fraction of the inference time.
+          </p>
+        </div>
+
+        <h3 class="subsection-title">Generated Videos on Real Robot Datasets: Bridge-V2, RT-1, and Language Table</h3>
+        <p class="subsection-desc">
+          DriftWorld generates videos that closely match the ground truth, at inference speeds of 33.3, 38.8, and 36.6
+          fps for Bridge-V2, RT-1, and Language Table on a single H100 GPU.
+        </p>
+
+        <div class="compare-card compare-carousel" data-carousel aria-label="Bridge-V2 comparison carousel">
+          <div class="compare-carousel-viewport">
+            <div class="compare-carousel-track">
+              <article class="compare-slide is-active" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Bridge-V2 </strong>
+                  <button class="replay-btn" type="button" data-target="bridge-cmp-4">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="bridge-cmp-4">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/gt/1.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/irasim/1.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/worldgym/1.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/driftworld/1.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Bridge-V2 </strong>
+                  <button class="replay-btn" type="button" data-target="bridge-cmp-6">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="bridge-cmp-6">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/gt/2.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/irasim/2.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/worldgym/2.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/driftworld/2.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Bridge-V2</strong>
+                  <button class="replay-btn" type="button" data-target="bridge-cmp-7">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="bridge-cmp-7">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/gt/3.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/irasim/3.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/worldgym/3.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/driftworld/3.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Bridge-V2</strong>
+                  <button class="replay-btn" type="button" data-target="bridge-cmp-8">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="bridge-cmp-8">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/gt/4.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/irasim/4.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/worldgym/4.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/driftworld/4.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Bridge-V2</strong>
+                  <button class="replay-btn" type="button" data-target="bridge-cmp-10">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="bridge-cmp-10">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/gt/5.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/irasim/5.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/worldgym/5.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/driftworld/5.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Bridge-V2</strong>
+                  <button class="replay-btn" type="button" data-target="bridge-cmp-11">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="bridge-cmp-11">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/gt/6.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/irasim/6.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/worldgym/6.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/driftworld/6.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Bridge-V2
+                  </strong>
+                  <button class="replay-btn" type="button" data-target="bridge-cmp-12">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="bridge-cmp-12">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/gt/7.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/irasim/7.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/worldgym/7.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/Bridge_Comparison/driftworld/7.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+            </div>
+
+            <div class="compare-carousel-controls" aria-label="Bridge-V2 comparison navigation">
+              <button class="compare-carousel-arrow" type="button" data-carousel-prev aria-label="Previous comparison">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                </svg>
+              </button>
+              <div class="compare-carousel-dots" role="tablist" aria-label="Choose Bridge-V2 comparison">
+                <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                  aria-label="Show comparison 1"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 2"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 3"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 4"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 5"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 6"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 7"></button>
+              </div>
+              <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next comparison">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="compare-card compare-carousel" data-carousel aria-label="RT-1 comparison carousel">
+          <div class="compare-carousel-viewport">
+            <div class="compare-carousel-track">
+              <article class="compare-slide is-active" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>RT-1
+                  </strong>
+                  <button class="replay-btn" type="button" data-target="rt1-cmp-1">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="rt1-cmp-1">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/RT1_Comparison/gt/1.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/irasim/1.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/worldgym/1.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/driftworld/1.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>RT-1 </strong>
+                  <button class="replay-btn" type="button" data-target="rt1-cmp-2">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="rt1-cmp-2">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/RT1_Comparison/gt/2.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/irasim/2.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/worldgym/2.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/driftworld/2.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>RT-1
+                  </strong>
+                  <button class="replay-btn" type="button" data-target="rt1-cmp-3">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="rt1-cmp-3">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/RT1_Comparison/gt/3.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/irasim/3.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/worldgym/3.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/driftworld/3.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>RT-1</strong>
+                  <button class="replay-btn" type="button" data-target="rt1-cmp-4">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="rt1-cmp-4">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/RT1_Comparison/gt/4.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/irasim/4.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/worldgym/4.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/driftworld/4.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>RT-1 </strong>
+                  <button class="replay-btn" type="button" data-target="rt1-cmp-5">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="rt1-cmp-5">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/RT1_Comparison/gt/5.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/irasim/5.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/worldgym/5.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/driftworld/5.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>RT-1</strong>
+                  <button class="replay-btn" type="button" data-target="rt1-cmp-6">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="rt1-cmp-6">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/RT1_Comparison/gt/6.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/irasim/6.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/worldgym/6.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/driftworld/6.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>RT-1</strong>
+                  <button class="replay-btn" type="button" data-target="rt1-cmp-7">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="rt1-cmp-7">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/RT1_Comparison/gt/7.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/irasim/7.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/worldgym/7.mp4"></video>
+                    <figcaption class="compare-caption">WorldGym</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/RT1_Comparison/driftworld/7.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+            </div>
+
+            <div class="compare-carousel-controls" aria-label="RT-1 comparison navigation">
+              <button class="compare-carousel-arrow" type="button" data-carousel-prev aria-label="Previous comparison">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                </svg>
+              </button>
+              <div class="compare-carousel-dots" role="tablist" aria-label="Choose RT-1 comparison">
+                <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                  aria-label="Show comparison 1"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 2"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 3"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 4"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 5"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 6"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 7"></button>
+              </div>
+              <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next comparison">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="compare-card compare-carousel" data-carousel aria-label="Language Table comparison carousel">
+          <div class="compare-carousel-viewport">
+            <div class="compare-carousel-track">
+              <article class="compare-slide is-active" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Language Table</strong>
+                  <button class="replay-btn" type="button" data-target="lt-cmp-1">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="lt-cmp-1">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/gt/7.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/irasim/7.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/lvdm/7.mp4"></video>
+                    <figcaption class="compare-caption">LVDM</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/driftworld/7.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Language Table</strong>
+                  <button class="replay-btn" type="button" data-target="lt-cmp-2">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="lt-cmp-2">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/gt/2.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/irasim/2.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/lvdm/2.mp4"></video>
+                    <figcaption class="compare-caption">LVDM</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/driftworld/2.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Language Table</strong>
+                  <button class="replay-btn" type="button" data-target="lt-cmp-3">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="lt-cmp-3">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/gt/1.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/irasim/1.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/lvdm/1.mp4"></video>
+                    <figcaption class="compare-caption">LVDM</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/driftworld/1.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Language Table</strong>
+                  <button class="replay-btn" type="button" data-target="lt-cmp-4">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="lt-cmp-4">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/gt/3.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/irasim/3.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/lvdm/3.mp4"></video>
+                    <figcaption class="compare-caption">LVDM</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/driftworld/3.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Language Table</strong>
+                  <button class="replay-btn" type="button" data-target="lt-cmp-5">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="lt-cmp-5">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/gt/4.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/irasim/4.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/lvdm/4.mp4"></video>
+                    <figcaption class="compare-caption">LVDM</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/driftworld/4.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Language Table</strong>
+                  <button class="replay-btn" type="button" data-target="lt-cmp-6">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="lt-cmp-6">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/gt/5.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/irasim/5.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/lvdm/5.mp4"></video>
+                    <figcaption class="compare-caption">LVDM</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/driftworld/5.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Language Table</strong>
+                  <button class="replay-btn" type="button" data-target="lt-cmp-7">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Replay
+                  </button>
+                </div>
+                <div class="compare-row" id="lt-cmp-7">
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/gt/6.mp4"></video>
+                    <figcaption class="compare-caption">Ground Truth</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/irasim/6.mp4"></video>
+                    <figcaption class="compare-caption">IRASim</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata" src="videos/LT_Comparison/lvdm/6.mp4"></video>
+                    <figcaption class="compare-caption">LVDM</figcaption>
+                  </figure>
+                  <figure class="compare-item">
+                    <video autoplay muted playsinline preload="metadata"
+                      src="videos/LT_Comparison/driftworld/6.mp4"></video>
+                    <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                  </figure>
+                </div>
+              </article>
+            </div>
+
+            <div class="compare-carousel-controls" aria-label="Language Table comparison navigation">
+              <button class="compare-carousel-arrow" type="button" data-carousel-prev aria-label="Previous comparison">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                </svg>
+              </button>
+              <div class="compare-carousel-dots" role="tablist" aria-label="Choose Language Table comparison">
+                <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                  aria-label="Show comparison 1"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 2"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 3"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 4"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 5"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 6"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot
+                  aria-label="Show comparison 7"></button>
+              </div>
+              <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next comparison">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+        <h3 class="subsection-title">Generated Videos on Other Robotic Manipulation Tasks</h3>
+        <p class="subsection-desc">
+          DriftWorld generates videos that closely match the ground-truth simulator across the Robomimic Can, Robomimic
+          Lift, and Push-T tasks, including both single-view and two-view generation settings. The inference speed is
+          100.0 and 270.3 fps on Robomimic and Push-T, respectively.
+        </p>
+        <div class="compare-card compare-tabs" data-tabs>
+          <div class="compare-tab-list" role="tablist" aria-label="Choose manipulation task">
+            <button class="compare-tab is-active" id="tab-can" type="button" role="tab" aria-selected="true"
+              aria-controls="panel-can" data-tab-target="panel-can">Can</button>
+            <button class="compare-tab" id="tab-lift" type="button" role="tab" aria-selected="false"
+              aria-controls="panel-lift" data-tab-target="panel-lift" tabindex="-1">Lift</button>
+            <button class="compare-tab" id="tab-lift-2view" type="button" role="tab" aria-selected="false"
+              aria-controls="panel-lift-2view" data-tab-target="panel-lift-2view" tabindex="-1">Lift (2-view)</button>
+            <button class="compare-tab" id="tab-pusht" type="button" role="tab" aria-selected="false"
+              aria-controls="panel-pusht" data-tab-target="panel-pusht" tabindex="-1">Push-T</button>
+          </div>
+          <div class="compare-tab-panel is-active" id="panel-can" role="tabpanel" aria-labelledby="tab-can">
+            <div class="compare-carousel compare-carousel-pusht" data-carousel aria-label="Can comparison carousel">
+              <div class="compare-carousel-viewport">
+                <div class="compare-carousel-track">
+                  <article class="compare-slide is-active" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Comparison 1 (112 frames)</strong>
+                      <button class="replay-btn" type="button" data-target="can-cmp-1">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="can-cmp-1">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/GT/2.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/CtrlWorld/2.mp4"></video>
+                        <figcaption class="compare-caption">Ctrl-World</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/GPC/2.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/DriftWorld/2.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+
+                  <article class="compare-slide" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Comparison 2 (108 frames)</strong>
+                      <button class="replay-btn" type="button" data-target="can-cmp-2">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="can-cmp-2">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/GT/1.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/CtrlWorld/1.mp4"></video>
+                        <figcaption class="compare-caption">Ctrl-World</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/GPC/1.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Can/DriftWorld/1.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="compare-carousel-controls" aria-label="Can comparison navigation">
+                  <button class="compare-carousel-arrow" type="button" data-carousel-prev
+                    aria-label="Previous comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                    </svg>
+                  </button>
+                  <div class="compare-carousel-dots" role="tablist" aria-label="Choose Can comparison">
+                    <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                      aria-label="Show comparison 1"></button>
+                    <button class="compare-carousel-dot" type="button" data-carousel-dot
+                      aria-label="Show comparison 2"></button>
+                  </div>
+                  <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="compare-tab-panel" id="panel-lift" role="tabpanel" aria-labelledby="tab-lift" aria-hidden="true">
+            <div class="compare-carousel compare-carousel-pusht" data-carousel aria-label="Lift comparison carousel">
+              <div class="compare-carousel-viewport">
+                <div class="compare-carousel-track">
+                  <article class="compare-slide is-active" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Comparison 1 (46 frames)</strong>
+                      <button class="replay-btn" type="button" data-target="lift1-cmp-1">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="lift1-cmp-1">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_1view/GT/1.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_1view/CtrlWorld/1.mp4"></video>
+                        <figcaption class="compare-caption">Ctrl-World</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_1view/GPC/1.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_1view/DriftWorld/1.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+
+                  <article class="compare-slide" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Comparison 2 (52 frames)</strong>
+                      <button class="replay-btn" type="button" data-target="lift1-cmp-2">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="lift1-cmp-2">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_1view/GT/2.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_1view/CtrlWorld/2.mp4"></video>
+                        <figcaption class="compare-caption">Ctrl-World</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_1view/GPC/2.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_1view/DriftWorld/2.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+
+                  <article class="compare-slide" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Comparison 3 (48 frames)</strong>
+                      <button class="replay-btn" type="button" data-target="lift1-cmp-3">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="lift1-cmp-3">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_1view/GT/3.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_1view/CtrlWorld/3.mp4"></video>
+                        <figcaption class="compare-caption">Ctrl-World</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_1view/GPC/3.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_1view/DriftWorld/3.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+
+                </div>
+
+                <div class="compare-carousel-controls" aria-label="Lift comparison navigation">
+                  <button class="compare-carousel-arrow" type="button" data-carousel-prev
+                    aria-label="Previous comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                    </svg>
+                  </button>
+                  <div class="compare-carousel-dots" role="tablist" aria-label="Choose Lift comparison">
+                    <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                      aria-label="Show comparison 1"></button>
+                    <button class="compare-carousel-dot" type="button" data-carousel-dot
+                      aria-label="Show comparison 2"></button>
+                    <button class="compare-carousel-dot" type="button" data-carousel-dot
+                      aria-label="Show comparison 3"></button>
+                  </div>
+                  <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="compare-tab-panel compare-tab-panel-lift" id="panel-lift-2view" role="tabpanel"
+            aria-labelledby="tab-lift-2view" aria-hidden="true">
+            <div class="compare-carousel" data-carousel aria-label="Lift (2-view) comparison carousel">
+              <div class="compare-carousel-viewport">
+                <div class="compare-carousel-track">
+                  <article class="compare-slide is-active" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Two Views (Agent and Wrist Cameras) &mdash; 154-frame rollout</strong>
+                      <button class="replay-btn" type="button" data-target="lift2-cmp-1">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="lift2-cmp-1">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_2view/gt/2.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_2view/gpc/2.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_2view/driftworld/2.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+
+                  <article class="compare-slide" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Two Views (Agent and Wrist Cameras) &mdash; 46-frame rollout</strong>
+                      <button class="replay-btn" type="button" data-target="lift2-cmp-2">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="lift2-cmp-2">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_2view/gt/1.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_2view/gpc/1.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_2view/driftworld/1.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+
+                  <article class="compare-slide" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Two Views (Agent and Wrist Cameras) &mdash; 136-frame rollout</strong>
+                      <button class="replay-btn" type="button" data-target="lift2-cmp-3">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="lift2-cmp-3">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_2view/gt/3.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata" src="videos/Lift_2view/gpc/3.mp4"></video>
+                        <figcaption class="compare-caption">GPC</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_2view/driftworld/3.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="compare-carousel-controls" aria-label="Lift (2-view) comparison navigation">
+                  <button class="compare-carousel-arrow" type="button" data-carousel-prev
+                    aria-label="Previous comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                    </svg>
+                  </button>
+                  <div class="compare-carousel-dots" role="tablist" aria-label="Choose Lift (2-view) comparison">
+                    <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                      aria-label="Show comparison 1"></button>
+                    <button class="compare-carousel-dot" type="button" data-carousel-dot
+                      aria-label="Show comparison 2"></button>
+                    <button class="compare-carousel-dot" type="button" data-carousel-dot
+                      aria-label="Show comparison 3"></button>
+                  </div>
+                  <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="compare-tab-panel" id="panel-pusht" role="tabpanel" aria-labelledby="tab-pusht"
+            aria-hidden="true">
+            <div class="compare-carousel compare-carousel-pusht" data-carousel aria-label="Push-T comparison carousel">
+              <div class="compare-carousel-viewport">
+                <div class="compare-carousel-track">
+                  <article class="compare-slide is-active" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Comparison 1 &mdash; 140-frame rollout</strong>
+                      <button class="replay-btn" type="button" data-target="pusht-cmp-1">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="pusht-cmp-1">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/gt/1.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/gpc/1.mp4"></video>
+                        <figcaption class="compare-caption">GPC Diffusion</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/mse/1.mp4"></video>
+                        <figcaption class="compare-caption">MSE Baseline</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/driftworld/1.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+
+                  <article class="compare-slide" data-carousel-slide>
+                    <div class="compare-header">
+                      <strong>Comparison 2 &mdash; 118-frame rollout</strong>
+                      <button class="replay-btn" type="button" data-target="pusht-cmp-2">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Replay
+                      </button>
+                    </div>
+                    <div class="compare-row" id="pusht-cmp-2">
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/gt/2.mp4"></video>
+                        <figcaption class="compare-caption">Ground Truth</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/gpc/2.mp4"></video>
+                        <figcaption class="compare-caption">GPC Diffusion</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/mse/2.mp4"></video>
+                        <figcaption class="compare-caption">MSE Baseline</figcaption>
+                      </figure>
+                      <figure class="compare-item">
+                        <video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Comparison/driftworld/2.mp4"></video>
+                        <figcaption class="compare-caption">DriftWorld (Ours)</figcaption>
+                      </figure>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="compare-carousel-controls" aria-label="Push-T comparison navigation">
+                  <button class="compare-carousel-arrow" type="button" data-carousel-prev
+                    aria-label="Previous comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                    </svg>
+                  </button>
+                  <div class="compare-carousel-dots" role="tablist" aria-label="Choose Push-T comparison">
+                    <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                      aria-label="Show comparison 1"></button>
+                    <button class="compare-carousel-dot" type="button" data-carousel-dot
+                      aria-label="Show comparison 2"></button>
+                  </div>
+                  <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next comparison">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="section-title">Inference-Time Policy Improvement</h2>
+        <p class="section-desc">
+          DriftWorld can be used to improve a base policy at inference time by rolling out multiple action proposals in
+          the world model.
+          The highest-reward rollout (green) is selected, steering the policy toward better outcomes.
+          DriftWorld only takes a fraction of the inference time of standard diffusion models, making it practical and
+          efficient for online control.
+        </p>
+
+        <div class="compare-card compare-carousel compare-carousel-gpc-rank" data-carousel
+          aria-label="GPC-RANK visualization carousel">
+          <div class="compare-carousel-viewport">
+            <div class="compare-carousel-track">
+              <article class="compare-slide is-active" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Push-T &mdash; Visualization of GPC-RANK: Example 1 </strong>
+                </div>
+                <div class="compare-row" id="gpc-rank-video-1">
+                  <figure class="compare-item" style="flex:0 1 720px; max-width:720px;">
+                    <video controls autoplay muted playsinline preload="metadata"
+                      src="videos/PushT_GPC-RANK_Video/combined_trial1.mp4"></video>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="compare-slide" data-carousel-slide>
+                <div class="compare-header">
+                  <strong>Push-T &mdash; Visualization of GPC-RANK: Example 2 </strong>
+                </div>
+                <div class="compare-row" id="gpc-rank-video-2">
+                  <figure class="compare-item" style="flex:0 1 720px; max-width:720px;">
+                    <video controls autoplay muted playsinline preload="metadata"
+                      src="videos/PushT_GPC-RANK_Video/combined_trial0.mp4"></video>
+                  </figure>
+                </div>
+              </article>
+            </div>
+
+            <div class="compare-carousel-controls" aria-label="GPC-RANK visualization navigation">
+              <button class="compare-carousel-arrow" type="button" data-carousel-prev
+                aria-label="Previous visualization">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1-1.4 1.4z" />
+                </svg>
+              </button>
+              <div class="compare-carousel-dots" role="tablist" aria-label="Choose GPC-RANK visualization">
+                <button class="compare-carousel-dot is-active" type="button" data-carousel-dot
+                  aria-label="Show trial 26"></button>
+                <button class="compare-carousel-dot" type="button" data-carousel-dot aria-label="Show trial 0"></button>
+              </div>
+              <button class="compare-carousel-arrow" type="button" data-carousel-next aria-label="Next visualization">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m8.5 4.5 7.5 7.5-7.5 7.5-1.4-1.4 6.1-6.1-6.1-6.1 1.4-1.4z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="section-title">Policy Evaluation</h2>
+        <p class="section-desc">
+          DriftWorld serves as an accurate offline simulator for policy evaluation,
+          successfully predicting both the absolute performance and relative ranking of policies.
+          Our model achieves high correlation coefficients of 0.9916, 0.9250, and 0.9515 between
+          policy performance in the world model and ground-truth performance on
+          Robomimic Lift, Robomimic Can, and Push-T tasks, respectively.
+        </p>
+
+        <div class="compare-card compare-tabs policy-rollout-tabs" data-tabs>
+          <div class="compare-tab-list" role="tablist" aria-label="Choose policy rollout task">
+            <button class="compare-tab is-active" id="tab-policy-lift" type="button" role="tab" aria-selected="true"
+              aria-controls="panel-policy-lift" data-tab-target="panel-policy-lift">Lift</button>
+            <button class="compare-tab" id="tab-policy-can" type="button" role="tab" aria-selected="false"
+              aria-controls="panel-policy-can" data-tab-target="panel-policy-can" tabindex="-1">Can</button>
+            <button class="compare-tab" id="tab-policy-pusht" type="button" role="tab" aria-selected="false"
+              aria-controls="panel-policy-pusht" data-tab-target="panel-policy-pusht" tabindex="-1">Push-T</button>
+          </div>
+          <div class="compare-tab-panel is-active" id="panel-policy-lift" role="tabpanel"
+            aria-labelledby="tab-policy-lift">
+            <div class="compare-header">
+              <strong>Robomimic Lift &mdash; Simulating Policy Rollouts in the World Model</strong>
+              <button class="replay-btn" type="button" data-target="lift-rollout-cmp">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                </svg>
+                Replay
+              </button>
+            </div>
+            <div class="policy-rollout-body" id="lift-rollout-cmp">
+              <figure class="policy-rollout-figure">
+                <img src="videos/Policy_Eval/policy_eval_fig_6plot_split_lift.png"
+                  alt="Lift policy evaluation correlation plot">
+              </figure>
+              <div class="policy-rollout-videos">
+                <table class="rollout-table">
+                  <thead>
+                    <tr>
+                      <th>Ground Truth</th>
+                      <th>Ctrl-World</th>
+                      <th>DriftWorld (Ours)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_Policy_Rollout/trial_1/gt.mp4"></video></td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_Policy_Rollout/trial_1/baseline.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_Policy_Rollout/trial_1/driftworld.mp4"></video>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_Policy_Rollout/trial_0/gt.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_Policy_Rollout/trial_0/baseline.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Lift_Policy_Rollout/trial_0/driftworld.mp4"></video>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="compare-tab-panel" id="panel-policy-can" role="tabpanel" aria-labelledby="tab-policy-can"
+            aria-hidden="true">
+            <div class="compare-header">
+              <strong>Robomimic Can &mdash; Simulating Policy Rollouts in the World Model</strong>
+              <button class="replay-btn" type="button" data-target="can-rollout-cmp">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                </svg>
+                Replay
+              </button>
+            </div>
+            <div class="policy-rollout-body" id="can-rollout-cmp">
+              <figure class="policy-rollout-figure">
+                <img src="videos/Policy_Eval/policy_eval_fig_6plot_split_can.png"
+                  alt="Can policy evaluation correlation plot">
+              </figure>
+              <div class="policy-rollout-videos">
+                <table class="rollout-table">
+                  <thead>
+                    <tr>
+                      <th>Ground Truth</th>
+                      <th>Ctrl-World</th>
+                      <th>DriftWorld (Ours)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Can_Policy_Rollout/trial_2/gt.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Can_Policy_Rollout/trial_2/baseline.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Can_Policy_Rollout/trial_2/driftworld.mp4"></video>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Can_Policy_Rollout/trial_4/gt.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Can_Policy_Rollout/trial_4/baseline.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/Can_Policy_Rollout/trial_4/driftworld.mp4"></video>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="compare-tab-panel" id="panel-policy-pusht" role="tabpanel" aria-labelledby="tab-policy-pusht"
+            aria-hidden="true">
+            <div class="compare-header">
+              <strong>Push-T &mdash; Simulating Policy Rollouts in the World Model</strong>
+              <button class="replay-btn" type="button" data-target="pusht-rollout-cmp">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                </svg>
+                Replay
+              </button>
+            </div>
+            <div class="policy-rollout-body" id="pusht-rollout-cmp">
+              <figure class="policy-rollout-figure">
+                <img src="videos/Policy_Eval/policy_eval_fig_6plot_split_pusht.png"
+                  alt="Push-T policy evaluation correlation plot">
+              </figure>
+              <div class="policy-rollout-videos">
+                <table class="rollout-table">
+                  <thead>
+                    <tr>
+                      <th>Ground Truth</th>
+                      <th>GPC Baseline</th>
+                      <th>DriftWorld (Ours)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Policy_Rollout/trial_1/gt.mp4"></video></td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Policy_Rollout/trial_1/baseline.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Policy_Rollout/trial_1/driftworld.mp4"></video>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Policy_Rollout/trial_0/gt.mp4"></video></td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Policy_Rollout/trial_0/baseline.mp4"></video>
+                      </td>
+                      <td><video autoplay muted playsinline preload="metadata"
+                          src="videos/PushT_Policy_Rollout/trial_0/driftworld.mp4"></video>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section id="live-demo" class="section" data-ws="wss://driftworld-demo-proxy.subdomain3e2f3b0.workers.dev">
+          <div>
+            <div class="section-header">
+              <h2 class="section-title">Interactive Demo</h2>
+              <p class="section-desc">
+                In the live demo below, you can interact with DriftWorld in real time. Switch between the
+                Language Table and Push-T tabs, click <b>Connect</b>, and use the arrow keys to
+                move the robot gripper.
+                Every frame is generated with a <b>single forward pass</b> on an NVIDIA L4 GPU.
+              </p>
+              <p class="section-desc" style="margin-bottom: 10px;">
+                <em>Info:</em> When the status changes from Connecting to Loading, you can start pressing the arrow keys.
+                Note that the first key press takes a moment to respond since the model and server are warming up.
+                After that, the demo streams smoothly, and the status becomes Live.
+              </p>
+              <p class="section-desc">
+                <em>Note:</em> The demo may be slower or unavailable due to resource limitations.
+                To keep it free to run, each session lasts up to 2&nbsp;min and ends after 30 sec of inactivity &mdash;
+                just click Connect again to restart.
+              </p>
+            </div>
+
+            <div class="compare-card demo-card">
+              <div class="topbar">
+                <button class="connect-btn" id="demo-connect" type="button">&#9654;&nbsp;Connect</button>
+                <div class="tabs" role="tablist" aria-label="Choose demo">
+                  <button class="tab is-active" id="demo-tab-lt" type="button" role="tab" aria-selected="true"
+                    data-task="lt">Language Table</button>
+                  <button class="tab" id="demo-tab-pusht" type="button" role="tab" aria-selected="false" tabindex="-1"
+                    data-task="pusht">Push-T</button>
+                </div>
+                <div class="stats">
+                  <span class="stat"><span class="lbl">DriftWorld</span><b id="demo-mpf">&ndash;</b>
+                    <span class="u">ms/frame</span>
+                    <span class="paren">(<b id="demo-fps">&ndash;</b> <span class="u">fps</span>)</span></span>
+                  <span class="vr"></span>
+                  <span class="stat"><span class="lbl">Latency</span><b id="demo-lat">0</b><span
+                      class="u">ms</span></span>
+                  <span class="vr"></span>
+                  <span class="stat" id="demo-conn" data-state="disconnected">
+                    <span class="dot" aria-hidden="true"></span><span class="conn-label">Disconnected</span></span>
+                </div>
+              </div>
+              <div class="demo-wrap">
+                <div class="stage" id="demo-stage" tabindex="0" title="click to activate, then use arrow keys">
+                  <canvas id="demo-canvas" width="384" height="288"></canvas>
+                  <div class="ovl" id="demo-overlay">
+                    <div class="demo-ov-inner">
+                      <div id="demo-ovtext">Click Connect to start the live demo</div>
+                    </div>
+                  </div>
+                </div>
+                <aside class="side">
+                  <div class="keypad" aria-label="Arrow key state">
+                    <div class="keypad-title">Move</div>
+                    <div class="keygrid">
+                      <div class="keyspacer"></div>
+                      <div class="keycap" data-key="ArrowUp" role="button" tabindex="-1">
+                        <div class="lab">&uarr;</div>
+                        <div class="sub" data-sub="ArrowUp">forward</div>
+                      </div>
+                      <div class="keyspacer"></div>
+                      <div class="keycap" data-key="ArrowLeft" role="button" tabindex="-1">
+                        <div class="lab">&larr;</div>
+                        <div class="sub" data-sub="ArrowLeft">left</div>
+                      </div>
+                      <div class="keycap" data-key="ArrowDown" role="button" tabindex="-1">
+                        <div class="lab">&darr;</div>
+                        <div class="sub" data-sub="ArrowDown">back</div>
+                      </div>
+                      <div class="keycap" data-key="ArrowRight" role="button" tabindex="-1">
+                        <div class="lab">&rarr;</div>
+                        <div class="sub" data-sub="ArrowRight">right</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="demo-hud"><span id="demo-hints"></span></div>
+                  <button class="btn" id="demo-reset" type="button" title="Reset scene (r)">
+                    <span class="ico" aria-hidden="true">&#10227;</span> Reset
+                  </button>
+                  <label class="scene-row">Scene <select id="demo-scene" disabled>
+                      <option value="0">connect to load scenes</option>
+                    </select></label>
+                </aside>
+              </div>
+              <div class="demo-progress" id="demo-progress">
+                <div class="demo-progress-fill" id="demo-progress-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <style>
+            /* Ported verbatim from the local web demo (server.py _INDEX_HTML), hardcoded light palette.
+               Everything is scoped under #live-demo and uses demo-local --d-* vars (distinct names) so it
+               cannot leak onto the rest of the page or shift the section header's theme colors. */
+            #live-demo .demo-card {
+              --d-bg: #fafaf9;
+              --d-surface: #fff;
+              --d-surface-soft: #f3f3f1;
+              --d-ink: #111418;
+              --d-muted: #6b7280;
+              --d-line: #e5e5e3;
+              --d-accent: #1f6feb;
+              --d-accent-soft: #e8f0fe;
+              --d-ok: #31c46b;
+              --d-warn: #e8913a;
+              --d-off: #9ca3af;
+              --stage-w: min(72vw, 460px);
+              --stage-h: calc(var(--stage-w) * 0.75);
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 16px;
+              background: var(--d-bg);
+              border: 1px solid var(--d-line);
+              border-radius: 12px;
+              box-shadow: var(--shadow-md);
+              padding: 20px;
+              color: var(--d-ink);
+              font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            }
+
+            #live-demo .demo-card * {
+              box-sizing: border-box;
+            }
+
+            /* Tabs + Connect + perf readout share one centered row. */
+            #live-demo .topbar {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 14px;
+              flex-wrap: wrap;
+            }
+
+            #live-demo .tabs {
+              display: inline-flex;
+              gap: 4px;
+              background: var(--d-surface-soft);
+              border: 1px solid var(--d-line);
+              border-radius: 9px;
+              padding: 4px;
+            }
+
+            #live-demo .tab {
+              appearance: none;
+              border: 0;
+              background: transparent;
+              color: var(--d-muted);
+              font: 600 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+              padding: 8px 16px;
+              border-radius: 6px;
+              cursor: pointer;
+            }
+
+            #live-demo .tab.is-active {
+              background: var(--d-surface);
+              color: var(--d-ink);
+              box-shadow: 0 1px 3px rgba(17, 20, 24, .12);
+            }
+
+            /* Same 9px pill shape + height as the tabs/stats so it sits in the row as a sibling, but keeps
+               the solid accent fill so it still reads as the primary action. Calm hover (no jump). */
+            #live-demo .connect-btn {
+              cursor: pointer;
+              border: 1px solid var(--d-accent);
+              border-radius: 9px;
+              padding: 8px 18px;
+              font: 600 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+              color: #fff;
+              background: var(--d-accent);
+              min-width: 118px;
+              transition: filter .15s, background .15s, border-color .15s, color .15s;
+            }
+
+            #live-demo .connect-btn:hover {
+              filter: brightness(1.07);
+            }
+
+            #live-demo .connect-btn.disconnect {
+              border-color: #b54708;
+              color: #b54708;
+              background: #fff;
+            }
+
+            #live-demo .connect-btn.disconnect:hover {
+              background: #fff7ed;
+              filter: none;
+            }
+
+            #live-demo .connect-btn:disabled {
+              opacity: .55;
+              cursor: default;
+              transform: none;
+              filter: none;
+            }
+
+            #live-demo .stats {
+              display: inline-flex;
+              align-items: center;
+              gap: 12px;
+              background: var(--d-surface-soft);
+              border: 1px solid var(--d-line);
+              border-radius: 9px;
+              padding: 8px 14px;
+            }
+
+            #live-demo .stat {
+              display: inline-flex;
+              align-items: baseline;
+              gap: 5px;
+              white-space: nowrap;
+            }
+
+            #live-demo .stat b {
+              color: var(--d-ink);
+              font: 600 14px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+              font-variant-numeric: tabular-nums;
+              display: inline-block;
+              text-align: right;
+            }
+
+            #live-demo #demo-mpf {
+              min-width: 38px;
+            }
+
+            #live-demo #demo-fps {
+              min-width: 22px;
+            }
+
+            #live-demo #demo-lat {
+              min-width: 26px;
+            }
+
+            #live-demo .stat .lbl {
+              font: 600 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+              letter-spacing: .04em;
+              color: var(--d-ink);
+            }
+
+            #live-demo .stat .u {
+              font: 500 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+              color: var(--d-muted);
+            }
+
+            #live-demo .stat .paren {
+              color: var(--d-muted);
+            }
+
+            #live-demo .vr {
+              width: 1px;
+              align-self: stretch;
+              background: var(--d-line);
+            }
+
+            #live-demo #demo-conn {
+              gap: 6px;
+            }
+
+            #live-demo #demo-conn .dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              flex: 0 0 auto;
+            }
+
+            #live-demo #demo-conn .conn-label {
+              font: 600 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+              letter-spacing: .04em;
+            }
+
+            #live-demo #demo-conn[data-state="live"] .dot {
+              background: var(--d-ok);
+              box-shadow: 0 0 0 3px rgba(49, 196, 107, .18);
+            }
+
+            #live-demo #demo-conn[data-state="live"] .conn-label {
+              color: var(--d-ok);
+            }
+
+            /* Loading = connected + scene visible, but the interactive stream hasn't produced a real
+               frame yet (the first-key-press spin-up). Yellow, distinct from connecting-orange. */
+            #live-demo #demo-conn[data-state="loading"] .dot {
+              background: #eab308;
+              box-shadow: 0 0 0 3px rgba(234, 179, 8, .18);
+            }
+
+            #live-demo #demo-conn[data-state="loading"] .conn-label {
+              color: #eab308;
+            }
+
+            #live-demo #demo-conn[data-state="connecting"] .dot {
+              background: var(--d-warn);
+              box-shadow: 0 0 0 3px rgba(232, 145, 58, .18);
+            }
+
+            #live-demo #demo-conn[data-state="connecting"] .conn-label {
+              color: var(--d-warn);
+            }
+
+            #live-demo #demo-conn[data-state="disconnected"] .dot {
+              background: var(--d-off);
+              box-shadow: 0 0 0 3px rgba(156, 163, 175, .18);
+            }
+
+            #live-demo #demo-conn[data-state="disconnected"] .conn-label {
+              color: var(--d-off);
+            }
+
+            #live-demo .demo-wrap {
+              display: flex;
+              align-items: flex-start;
+              justify-content: center;
+              gap: 20px;
+              flex-wrap: wrap;
+            }
+
+            /* content-box keeps the 8px padding outside the canvas box, so the stage is exactly
+               canvas + padding and neither it nor the sidebar shifts when switching tabs. */
+            #live-demo .stage {
+              position: relative;
+              box-sizing: content-box;
+              width: var(--stage-w);
+              height: var(--stage-h);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              outline: none;
+              cursor: pointer;
+              background: var(--d-surface);
+              border: 1px solid var(--d-line);
+              border-radius: 8px;
+              padding: 8px;
+              box-shadow: 0 4px 18px rgba(17, 20, 24, .08);
+            }
+
+            #live-demo .stage:focus {
+              box-shadow: 0 0 0 2px var(--d-accent);
+            }
+
+            #live-demo canvas {
+              image-rendering: pixelated;
+              height: var(--stage-h);
+              width: auto;
+              max-width: 100%;
+              display: block;
+              background: #fff;
+              border-radius: 5px;
+            }
+
+            #live-demo .ovl {
+              position: absolute;
+              inset: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              padding: 0 20px;
+              color: var(--d-ink);
+              background: rgba(250, 250, 249, .9);
+              border-radius: 5px;
+              font-size: 13px;
+              transition: opacity .2s;
+            }
+
+            #live-demo .ovl.hidden {
+              opacity: 0;
+              pointer-events: none;
+            }
+
+            /* Preview mode (disconnected): let the static scene frame show through, with a small
+               non-blocking pill instead of the full opaque cover. */
+            #live-demo .ovl.preview {
+              background: transparent;
+              align-items: flex-end;
+              padding-bottom: 12px;
+            }
+
+            #live-demo .ovl.preview .demo-ov-inner {
+              background: rgba(250, 250, 249, .92);
+              border: 1px solid var(--d-line);
+              border-radius: 999px;
+              padding: 6px 14px;
+              box-shadow: 0 1px 3px rgba(17, 20, 24, .12);
+              font-size: 12px;
+            }
+
+            #live-demo .demo-ov-inner {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 14px;
+              line-height: 1.5;
+            }
+
+            /* Match the stage's outer height exactly so the two panels' bottoms align. The stage is
+               content-box (height var(--stage-h) + 8px padding + 1px border each side = +18px); .side is
+               border-box, so setting the same total height lines them up. Flex column lets #demo-hud absorb
+               the slack (see below). */
+            #live-demo .side {
+              width: 260px;
+              height: calc(var(--stage-h) + 18px);
+              display: flex;
+              flex-direction: column;
+              text-align: left;
+              background: var(--d-surface);
+              border: 1px solid var(--d-line);
+              border-radius: 8px;
+              padding: 14px 16px;
+              box-shadow: 0 1px 3px rgba(17, 20, 24, .06);
+            }
+
+            #live-demo .keypad-title {
+              font: 600 13px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+              color: var(--d-ink);
+              margin-bottom: 8px;
+            }
+
+            #live-demo .keygrid {
+              display: grid;
+              grid-template-columns: repeat(3, 58px);
+              gap: 7px;
+              justify-content: start;
+              margin-bottom: 14px;
+            }
+
+            #live-demo .keycap,
+            #live-demo .keyspacer {
+              width: 58px;
+              height: 54px;
+            }
+
+            /* touch-action:none so a press-and-hold on a keycap drives the model instead of scrolling. */
+            #live-demo .keycap {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              border: 1px solid #d8d6cf;
+              border-radius: 7px;
+              background: var(--d-surface-soft);
+              color: var(--d-ink);
+              box-shadow: inset 0 -1px 0 rgba(17, 20, 24, .06);
+              cursor: pointer;
+              user-select: none;
+              touch-action: none;
+              transition: background .08s, border-color .08s, color .08s, transform .08s;
+            }
+
+            #live-demo .keycap .lab {
+              font-size: 20px;
+              line-height: 1;
+            }
+
+            #live-demo .keycap .sub {
+              font: 500 10px/1.1 system-ui, -apple-system, "Segoe UI", sans-serif;
+              color: var(--d-muted);
+              margin-top: 4px;
+            }
+
+            #live-demo .keycap.active {
+              background: var(--d-accent);
+              border-color: var(--d-accent);
+              color: #fff;
+              transform: translateY(1px);
+            }
+
+            #live-demo .keycap.active .sub {
+              color: #dbeafe;
+            }
+
+            /* Grows to fill the sidebar's spare height, so the leftover space lands between the two-line
+               hint and the Reset button, and the Scene row settles at the bottom (bottoms aligned). */
+            #live-demo #demo-hud {
+              flex: 1 1 auto;
+              margin: 12px 0;
+              color: var(--d-muted);
+              font-size: 12px;
+              line-height: 1.7;
+            }
+
+            #live-demo .btn {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 7px;
+              width: 100%;
+              margin-bottom: 10px;
+              border: 1px solid #d8d6cf;
+              border-radius: 7px;
+              background: var(--d-surface-soft);
+              color: var(--d-ink);
+              font: 600 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+              padding: 9px 12px;
+              cursor: pointer;
+              box-shadow: inset 0 -1px 0 rgba(17, 20, 24, .06);
+              transition: background .08s, border-color .08s, transform .08s;
+            }
+
+            #live-demo .btn:hover {
+              background: var(--d-accent-soft);
+              border-color: var(--d-accent);
+            }
+
+            #live-demo .btn:active {
+              transform: translateY(1px);
+            }
+
+            #live-demo .btn .ico {
+              font-size: 16px;
+              line-height: 1;
+            }
+
+            #live-demo .scene-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              color: var(--d-ink);
+              font-size: 13px;
+            }
+
+            #live-demo select {
+              min-width: 0;
+              flex: 1;
+              background: var(--d-surface);
+              color: var(--d-ink);
+              border: 1px solid #d8d6cf;
+              border-radius: 6px;
+              padding: 5px 8px;
+              font-family: inherit;
+              font-size: 12px;
+            }
+
+            #live-demo select:disabled {
+              opacity: .7;
+            }
+
+            /* unobtrusive tqdm-style session-time bar across the bottom of the live demo card */
+            #live-demo .demo-progress {
+              width: 100%;
+              height: 4px;
+              border-radius: 999px;
+              background: rgba(17, 20, 24, .10);
+              overflow: hidden;
+              opacity: 0;
+              transition: opacity .3s;
+            }
+
+            #live-demo .demo-progress.on {
+              opacity: 1;
+            }
+
+            #live-demo .demo-progress-fill {
+              height: 100%;
+              width: 0;
+              border-radius: 999px;
+              background: var(--d-ok);
+              transition: width .2s linear;
+            }
+
+            @media (max-width: 760px) {
+
+              /* Panel stacks under the stage here: drop the fixed height so it isn't stretched to the
+                 (now vertical) stage height; #demo-hud's flex:1 then has no free space and behaves. */
+              #live-demo .side {
+                width: min(96vw, 460px);
+                height: auto;
+              }
+
+              #live-demo .keygrid {
+                justify-content: center;
+              }
+            }
+          </style>
+
+          <script>
+            (function () {
+              const sec = document.getElementById('live-demo');
+              const WS_BASE = sec.dataset.ws.replace(/\/$/, '');
+              const HTTP_BASE = WS_BASE.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:');
+              const cv = document.getElementById('demo-canvas');
+              const cx = cv.getContext('2d');
+              const overlay = document.getElementById('demo-overlay');
+              const connEl = document.getElementById('demo-conn');
+              const latEl = document.getElementById('demo-lat');
+              const msEl = document.getElementById('demo-mpf');
+              const fpsEl = document.getElementById('demo-fps');
+              const stage = document.getElementById('demo-stage');
+              const sceneSel = document.getElementById('demo-scene');
+              const connectBtn = document.getElementById('demo-connect');
+              const ovText = document.getElementById('demo-ovtext');
+              const progress = document.getElementById('demo-progress');
+              const progFill = document.getElementById('demo-progress-fill');
+              const resetBtn = document.getElementById('demo-reset');
+              const hintsEl = document.getElementById('demo-hints');
+              const keyEls = Array.from(sec.querySelectorAll('.keycap[data-key]'));
+              const tabBtns = Array.from(sec.querySelectorAll('.tab[data-task]'));
+              const subEls = Array.from(sec.querySelectorAll('.keycap .sub[data-sub]'));
+
+              // Per-task UI copy. Both tasks use the same arrow keypad; only the sub-labels + hints differ.
+              const TASKS = {
+                lt: {
+                  label: 'Language Table',
+                  subs: { ArrowUp: 'forward', ArrowDown: 'back', ArrowLeft: 'left', ArrowRight: 'right' },
+                  hints: 'arrows: move · r: reset<br>n/p: scene',
+                },
+                pusht: {
+                  label: 'Push-T',
+                  subs: { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' },
+                  hints: 'arrows: push · r: reset<br>n/p: scene',
+                },
+              };
+              let task = 'lt';
+
+              // Static initial-frame previews shown while disconnected (no GPU / no /scenes fetch)
+              const PREVIEW = {
+                lt: { dir: 'language_table', count: 10 },
+                pusht: { dir: 'pusht', count: 30 },
+              };
+              const pad2 = i => String(i).padStart(2, '0');
+              const previewSrc = (t, i) => `demo/${PREVIEW[t].dir}/scene_${pad2(i)}.png`;
+
+              // Passive connection pill (Live/Connecting/Disconnected), distinct from the Connect button.
+              const CONN_LABEL = { live: 'Live', loading: 'Loading', connecting: 'Connecting', disconnected: 'Disconnected' };
+              function setConn(s) {
+                connEl.dataset.state = s;
+                connEl.querySelector('.conn-label').textContent = CONN_LABEL[s];
+              }
+
+              function applyTaskUI(t) {
+                const cfg = TASKS[t];
+                subEls.forEach(el => { el.textContent = cfg.subs[el.dataset.sub]; });
+                hintsEl.innerHTML = cfg.hints;  // two static lines joined by <br>
+                tabBtns.forEach(b => {
+                  const on = b.dataset.task === t;
+                  b.classList.toggle('is-active', on);
+                  b.setAttribute('aria-selected', on ? 'true' : 'false');
+                  b.tabIndex = on ? 0 : -1;
+                });
+              }
+
+              const HELD = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+              const EVENT_KEYS = new Set(['r', 'n', 'p']);  // discrete one-shot keys
+              const held = new Set();
+              let events = [];
+              let active = false;         // capture keys only while connected
+              let hasFrame = false;
+              let wentLive = false;       // seen a real streamed frame (mpf>0) this session -> status Live
+              let lastSend = 0;
+              let ws = null;
+              let maxSession = 120;       // session cap (s); overwritten by the server 'config' message
+              let idleTimeout = 30;       // idle limit (s); overwritten by the server 'config' message
+              let lastReason = null;      // 'cap' | 'idle' | null - why the last session ended
+              let manualDisconnect = false;
+              let connectGen = 0;         // bumped per Connect; discards async replies from stale attempts
+              let progTimer = null;
+              let scenesLoaded = false;
+              let scenesLoading = false;
+              let curScene = 0;           // last scene index the server reported (keeps the dropdown in sync)
+
+              function setConnectButton(state) {
+                connectBtn.classList.toggle('disconnect', state === 'connected');
+                connectBtn.disabled = state === 'connecting' || state === 'disconnecting';
+                if (state === 'connecting') connectBtn.textContent = 'Connecting...';
+                else if (state === 'connected') connectBtn.textContent = 'Disconnect';
+                else if (state === 'disconnecting') connectBtn.textContent = 'Disconnecting...';
+                else connectBtn.innerHTML = '&#9654;&nbsp;Connect';
+              }
+              function showStart(text) {
+                ovText.textContent = text;
+                overlay.classList.remove('hidden', 'preview');
+                setConnectButton('idle');
+              }
+              function showBusy(text) {
+                ovText.textContent = text;
+                overlay.classList.remove('hidden', 'preview');
+              }
+              function hideOverlay() { overlay.classList.remove('preview'); overlay.classList.add('hidden'); }
+              // Non-blocking pill shown over a static preview frame while disconnected.
+              function showPreviewHint(text) {
+                ovText.textContent = text;
+                overlay.classList.remove('hidden');
+                overlay.classList.add('preview');
+                setConnectButton('idle');
+              }
+              function resetStats() { msEl.textContent = '-'; fpsEl.textContent = '-'; latEl.textContent = '-'; }
+              function syncKeys() { keyEls.forEach(el => el.classList.toggle('active', held.has(el.dataset.key))); }
+              function clearHeld(sendUpdate) {
+                const hadHeld = held.size > 0;
+                held.clear();
+                syncKeys();
+                if (sendUpdate && hadHeld) send();
+              }
+              // One hold path for both the keyboard and the on-screen keycaps (data-key = the wire name);
+              // gated on `active` so clicks do nothing while the demo is disconnected.
+              function press(k) { if (!active) return; if (!held.has(k)) { held.add(k); send(); } syncKeys(); }
+              function release(k) { if (held.delete(k)) send(); syncKeys(); }
+              keyEls.forEach(el => {
+                const k = el.dataset.key;
+                // Capture the pointer so dragging off the key mid-hold still delivers pointerup here.
+                el.addEventListener('pointerdown', e => {
+                  e.preventDefault();
+                  if (el.setPointerCapture) el.setPointerCapture(e.pointerId); press(k);
+                });
+                el.addEventListener('pointerup', () => release(k));
+                el.addEventListener('pointercancel', () => release(k));
+              });
+              // Same one-shot 'r' the keyboard sends; blur so Space/Enter doesn't re-fire it while driving.
+              resetBtn.addEventListener('click', () => {
+                if (ws && ws.readyState === WebSocket.OPEN) { events.push('r'); send(); }
+                resetBtn.blur();
+              });
+              function setScenePlaceholder(text, disabled) {
+                sceneSel.innerHTML = '';
+                const o = document.createElement('option');
+                o.value = '0'; o.textContent = text;
+                sceneSel.appendChild(o);
+                sceneSel.disabled = !!disabled;
+              }
+              // ---- Offline scene preview (disconnected only; costs $0 -- static PNGs, no /scenes fetch) ----
+              function populateOfflineScenes(t) {
+                sceneSel.innerHTML = '';
+                for (let i = 0; i < PREVIEW[t].count; i++) {
+                  const o = document.createElement('option');
+                  o.value = i; o.textContent = String(i + 1);
+                  sceneSel.appendChild(o);
+                }
+                if (curScene >= PREVIEW[t].count) curScene = 0;   // clamp when switching to a smaller task
+                sceneSel.value = curScene;
+                sceneSel.disabled = false;
+              }
+              function drawScenePreview(t, i) {
+                const img = new Image();
+                img.onload = () => {
+                  if (ws || task !== t || curScene !== i) return;   // superseded (connected or user moved on)
+                  if (cv.width !== img.width || cv.height !== img.height) { cv.width = img.width; cv.height = img.height; }
+                  cx.drawImage(img, 0, 0);
+                };
+                img.src = previewSrc(t, i);
+              }
+              function enterPreview(t) {
+                populateOfflineScenes(t);
+                drawScenePreview(t, curScene);
+                showPreviewHint('Preview — click Connect to interact live');
+              }
+              function formatDuration(seconds) {
+                const s = Number(seconds);
+                if (!Number.isFinite(s) || s <= 0) return '';
+                if (s < 60) return Math.round(s) + 's';
+                const mins = s / 60;
+                return (Number.isInteger(mins) ? mins.toFixed(0) : mins.toFixed(1)) + ' min';
+              }
+
+              function startProgress() {
+                stopProgress();
+                if (!(maxSession > 0)) return;
+                const t0 = performance.now();
+                progFill.style.width = '0%';
+                progress.classList.add('on');
+                progTimer = setInterval(() => {
+                  const pct = Math.min(100, (performance.now() - t0) / 1000 / maxSession * 100);
+                  progFill.style.width = pct + '%';
+                }, 200);
+              }
+              function stopProgress() {
+                if (progTimer) { clearInterval(progTimer); progTimer = null; }
+                progress.classList.remove('on'); progFill.style.width = '0%';
+              }
+
+              // Light splash behind the overlay. Do not fetch /scenes here: that would wake Modal.
+              cx.fillStyle = '#f8f7f2'; cx.fillRect(0, 0, cv.width, cv.height);
+
+              function loadScenes(t) {
+                // Re-fetch the scene list for the active task (called on connect and on every tab switch).
+                scenesLoading = true;
+                setScenePlaceholder('loading scenes...', true);
+                fetch(HTTP_BASE + '/scenes?task=' + t).then(r => {
+                  if (!r.ok) throw new Error('scene fetch failed');
+                  return r.json();
+                }).then(d => {
+                  if (t !== task) return;  // a newer tab switch superseded this fetch
+                  sceneSel.innerHTML = '';
+                  (d.scenes || []).forEach(s => {
+                    const o = document.createElement('option');
+                    o.value = s.index;
+                    o.textContent = s.name + (s.instruction ? ' - ' + s.instruction : '');
+                    sceneSel.appendChild(o);
+                  });
+                  if (sceneSel.options.length === 0) setScenePlaceholder('scene 0', false);
+                  else { sceneSel.disabled = false; sceneSel.value = curScene; }  // re-apply server's index
+                  scenesLoaded = true;
+                }).catch(() => {
+                  setScenePlaceholder('scene 0', false);
+                  scenesLoaded = false;
+                }).finally(() => { scenesLoading = false; });
+              }
+
+              function setTask(next) {
+                if (next === task) return;
+                task = next;
+                applyTaskUI(next);
+                clearHeld(false);
+                resetStats();
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                  // Both models are resident server-side, so this is just a re-seed of the other task.
+                  wentLive = false;   // the new task's stream re-spins-up -> show Loading until its first frame
+                  setConn('connecting');
+                  showBusy('Switching to ' + TASKS[next].label + '...');
+                  ws.send(JSON.stringify({ type: 'set_task', task: next }));
+                  loadScenes(next);
+                } else {
+                  // Disconnected: swap the UI and preview the new task's scenes; the task is applied
+                  // for real when the user clicks Connect.
+                  enterPreview(next);
+                }
+              }
+              tabBtns.forEach(b => b.addEventListener('click', () => setTask(b.dataset.task)));
+
+              sceneSel.addEventListener('change', () => {
+                curScene = +sceneSel.value;
+                if (ws && ws.readyState === WebSocket.OPEN)
+                  ws.send(JSON.stringify({ type: 'set_scene', index: curScene }));
+                else
+                  drawScenePreview(task, curScene);   // disconnected: just repaint the static preview
+              });
+
+              function send() {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                lastSend = Date.now();
+                ws.send(JSON.stringify({ type: 'keys', held: [...held], events, t_client: performance.now() }));
+                events = [];
+              }
+
+              // A browser WebSocket never exposes the HTTP status of a failed handshake, so when the
+              // Cloudflare proxy refuses to open a GPU session (per-IP cap, or the global daily
+              // budget) the page only sees a bare "connection failed" -- indistinguishable from the
+              // server being down. Ask the proxy why, so we tell the visitor something true rather
+              // than blaming the server. Costs no GPU: /quota is served by the Worker itself.
+              function explainFailure(gen) {
+                fetch(HTTP_BASE + '/quota')
+                  .then(r => r.ok ? r.json() : null)
+                  .then(q => {
+                    if (!q || ws || gen !== connectGen) return;  // a newer Connect superseded this
+                    if (q.remaining === 0)
+                      showStart("Today's GPU budget for the demo is used up - please come back tomorrow");
+                    else if (q.ip_remaining === 0)
+                      showStart('You have started ' + q.ip_sessions_this_hour + ' sessions this hour (limit '
+                        + q.max_sessions_per_ip_hour + ') - the GPU is shared, so please come back in a little while');
+                  })
+                  .catch(() => { });  // proxy unreachable too: the generic message already shown is right
+              }
+
+              // Phase 1 of connect: wake the (possibly cold, scaled-to-zero) container over a cheap,
+              // UNMETERED GET /scenes before opening the WebSocket. A WS left pending across a multi-
+              // minute cold start is dropped by the browser/upstream before the container is ready,
+              // which surfaced as an instant "disconnected". We poll short, abortable attempts instead:
+              // aborting a client attempt doesn't stop the container the request already kicked off (it
+              // keeps booting and lingers for scaledown_window), so a later poll lands on it warm.
+              // Returns true when warm, 403 for a config/origin error to surface, or false on timeout.
+              async function wakeContainer(gen) {
+                const ATTEMPT_MS = 12000, GAP_MS = 1500, BUDGET_MS = 240000;
+                const t0 = performance.now();
+                while (performance.now() - t0 < BUDGET_MS) {
+                  if (gen !== connectGen) return false;      // superseded by a newer Connect / disconnect
+                  const ctrl = new AbortController();
+                  const timer = setTimeout(() => ctrl.abort(), ATTEMPT_MS);
+                  try {
+                    const r = await fetch(HTTP_BASE + '/scenes?task=lt', { signal: ctrl.signal });
+                    clearTimeout(timer);
+                    if (r.ok) return true;                   // container is up and serving
+                    if (r.status === 403) return 403;        // origin not allowed -> no point retrying
+                  } catch (_) {
+                    clearTimeout(timer);                     // abort (cold start still booting) or network blip -> retry
+                  }
+                  if (gen !== connectGen) return false;
+                  const secs = Math.round((performance.now() - t0) / 1000);
+                  showBusy('Waking the GPU… a cold start takes up to ~2 minutes (' + secs + 's)');
+                  await new Promise(res => setTimeout(res, GAP_MS));
+                }
+                return false;                                 // budget exhausted
+              }
+
+              async function connect() {
+                if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
+                const gen = ++connectGen;
+                active = false; hasFrame = false; wentLive = false; lastReason = null; lastSend = 0; manualDisconnect = false;
+                clearHeld(false); events = []; stopProgress(); resetStats();
+                setConn('connecting'); setConnectButton('connecting');
+                showBusy('Waking the GPU… a cold start takes up to ~2 minutes');
+
+                // Phase 1: make sure the container is warm, so the WebSocket below connects in <1s (and
+                // the visitor's full session begins only once they're actually interacting).
+                const woke = await wakeContainer(gen);
+                if (gen !== connectGen) return;              // a newer Connect / disconnect superseded us
+                if (woke !== true) {
+                  setConn('disconnected');
+                  showStart(woke === 403
+                    ? 'This demo can only be opened from the official demo page - click Connect to retry'
+                    : 'The GPU took too long to wake up - click Connect to try again');
+                  return;
+                }
+                showBusy('Almost ready…');
+
+                // Phase 2: container is warm -> open the WebSocket (existing flow, now near-instant).
+                let socketHadError = false;
+                let socket;
+                try { socket = new WebSocket(WS_BASE + '/ws'); ws = socket; }
+                catch (e) { ws = null; setConn('disconnected'); showStart('Could not reach the server - click Connect to retry'); return; }
+                socket.binaryType = 'arraybuffer';
+                socket.onopen = () => {
+                  if (ws !== socket) return;
+                  setConnectButton('connected');
+                  active = true; stage.focus();
+                  showBusy('Connected - press the arrow keys');
+                  startProgress();
+                  // The server starts on 'lt'; if a different tab is active, ask for it (no reconnect).
+                  if (task !== 'lt') ws.send(JSON.stringify({ type: 'set_task', task }));
+                  loadScenes(task);
+                  // Start on the scene the user was previewing while disconnected ("what you saw is
+                  // what you get"). Server default is scene 0, so only send when it differs.
+                  if (curScene !== 0) ws.send(JSON.stringify({ type: 'set_scene', index: curScene }));
+                };
+                socket.onmessage = async ev => {
+                  if (ws !== socket) return;
+                  if (typeof ev.data === 'string') {
+                    try {
+                      const m = JSON.parse(ev.data);
+                      if (m.type === 'config') {
+                        const nextMax = Number(m.max_session);
+                        const nextIdle = Number(m.idle_timeout);
+                        if (Number.isFinite(nextMax)) maxSession = nextMax;
+                        if (Number.isFinite(nextIdle)) idleTimeout = nextIdle;
+                        if (maxSession > 0 && !progTimer) startProgress();
+                        if (!(maxSession > 0)) stopProgress();
+                      } else if (m.type === 'queue') {
+                        // Queued behind the single GPU driver: show our place in line. The first
+                        // binary frame (once we're promoted) clears this overlay via hideOverlay().
+                        setConn('connecting');
+                        showBusy(m.position > 1
+                          ? 'Waking the GPU… you’re #' + m.position + ' in line'
+                          : 'You’re next — the GPU is almost free…');
+                      } else if (m.type === 'bye') lastReason = m.reason;
+                      // n/p move the scene server-side; follow it here so the dropdown never goes stale.
+                      else if (m.type === 'scene' && (!m.task || m.task === task)) { curScene = m.index; sceneSel.value = m.index; }
+                      // m.type === 'task_ready' -> the next binary frame (below) clears the overlay.
+                    } catch (_) { }
+                    return;
+                  }
+                  hasFrame = true; hideOverlay();
+                  const dv = new DataView(ev.data);
+                  const mpf = dv.getFloat64(8);
+                  const png = ev.data.slice(16);
+                  // Live only once a real streamed frame (mpf>0) arrives; the seed frame (mpf=0) keeps
+                  // the status at "Loading" so users see the stream is still spinning up on first press.
+                  if (mpf > 0) { wentLive = true; setConn('live'); }
+                  else if (!wentLive) setConn('loading');
+                  if (mpf > 0) { msEl.textContent = mpf.toFixed(1); fpsEl.textContent = (1000 / mpf).toFixed(0); }
+                  if (lastSend) latEl.textContent = Date.now() - lastSend;
+                  const bmp = await createImageBitmap(new Blob([png], { type: 'image/png' }));
+                  // Size the canvas to the incoming frame so LT (4:3-ish) and Push-T (square) both display
+                  // at their true aspect ratio (CSS gives width; height is auto).
+                  if (cv.width !== bmp.width || cv.height !== bmp.height) { cv.width = bmp.width; cv.height = bmp.height; }
+                  cx.drawImage(bmp, 0, 0);
+                };
+                socket.onclose = () => {
+                  if (ws !== socket) return;
+                  ws = null;
+                  const sawFrame = hasFrame;
+                  setConn('disconnected'); active = false; hasFrame = false; wentLive = false; lastSend = 0;
+                  clearHeld(false); events = []; stopProgress(); resetStats();
+                  const wasManual = manualDisconnect;
+                  manualDisconnect = false;
+                  const msg = wasManual
+                    ? 'Disconnected - click Connect to restart'
+                    : lastReason === 'busy'
+                      ? 'The demo is full right now - please try again in a minute'
+                      : lastReason === 'budget'
+                        ? "Today's GPU budget for the demo is used up - please come back tomorrow"
+                        : lastReason === 'cap'
+                          ? 'Session reached the ' + (formatDuration(maxSession) || 'session') + ' limit - click Connect to restart'
+                          : lastReason === 'idle'
+                            ? 'Session ended after ' + (formatDuration(idleTimeout) || 'the idle limit') + ' of inactivity - click Connect to restart'
+                            : socketHadError && !sawFrame
+                              ? 'Could not reach the server - click Connect to retry'
+                              : 'Disconnected - click Connect to restart';
+                  // Restore offline scene browsing: repopulate the dropdown and keep a frame on screen,
+                  // while showStart keeps the informative disconnect reason in the overlay.
+                  populateOfflineScenes(task);
+                  drawScenePreview(task, curScene);
+                  showStart(msg);
+                  // Never got a frame: this may be a quota refusal rather than an outage. Find out
+                  // and, if so, replace the message above with the real reason.
+                  if (!sawFrame && !wasManual) explainFailure(gen);
+                };
+                socket.onerror = () => {
+                  if (ws !== socket) return;
+                  socketHadError = true;
+                  setConn('disconnected');
+                  if (!hasFrame) showStart('Could not reach the server - click Connect to retry');
+                };
+              }
+
+              function disconnect() {
+                if (!ws) return;
+                manualDisconnect = true;
+                active = false; lastSend = 0; events = [];
+                clearHeld(true); stopProgress(); resetStats();
+                setConn('disconnected'); setConnectButton('disconnecting');
+                showBusy('Disconnecting...');
+                try { ws.close(1000, 'user disconnect'); }
+                catch (_) { try { ws.close(); } catch (_) { } }
+              }
+
+              connectBtn.addEventListener('click', () => {
+                if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) disconnect();
+                else connect();
+              });
+              stage.addEventListener('click', () => { if (ws && ws.readyState === WebSocket.OPEN) { active = true; stage.focus(); } });
+              // Input stays live for the whole session (active == connected), so clicking a button,
+              // the scene dropdown, or the overlay never disables the arrow keys. Only onclose/
+              // disconnect turns input off. Window blur just releases any held keys so nothing sticks
+              // when you switch apps/tabs -- it does NOT deactivate, so arrows resume on return.
+              window.addEventListener('blur', () => { clearHeld(true); });
+
+              window.addEventListener('keydown', e => {
+                if (!active) return;
+                if (HELD.has(e.key)) { e.preventDefault(); press(e.key); }
+                else if (!e.repeat && EVENT_KEYS.has(e.key.toLowerCase())) {
+                  events.push(e.key.toLowerCase()); send();  // r/n/p
+                }
+              });
+              window.addEventListener('keyup', e => { if (active) release(e.key); });
+              setInterval(() => { if (active) send(); }, 100);
+
+              // Do NOT auto-connect: The GPU only wakes on a Connect click.
+              applyTaskUI(task);
+              setConn('disconnected');
+              setConnectButton('idle');
+              // Show the initial frame of each scene so visitors can browse before waking a GPU.
+              enterPreview(task);
+            })();
+          </script>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/compare.js"></script>
+</body>
+
+</html>
