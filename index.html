@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Susie Lu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg:           #fafaf9;
+      --surface:      #ffffff;
+      --ink:          #111418;
+      --ink-soft:     #3a3f47;
+      --ink-mute:     #6b7280;
+      --line:         #e5e5e3;
+      --accent:       #1f6feb;
+      --shadow-sm:    0 1px 2px rgba(17, 20, 24, 0.04),
+                      0 1px 3px rgba(17, 20, 24, 0.06);
+      --maxw-narrow:  760px;
+
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   Helvetica, Arial, sans-serif;
+      --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--ink);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ────── Layout ────── */
+    .container {
+      max-width: var(--maxw-narrow);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ────── Hero ────── */
+    .hero {
+      padding: 84px 0 72px;
+      background:
+        radial-gradient(1200px 600px at 50% -100px, #eef2ff 0%, transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+      border-bottom: 3px solid var(--line);
+    }
+    .hero .container { text-align: center; }
+
+    .title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: -0.015em;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    /* ────── Sections ────── */
+    .section { padding: 72px 0; }
+
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.6vw, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 28px;
+    }
+
+    /* ────── Publications ────── */
+    .pub {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+    }
+    .pub + .pub {
+      margin-top: 36px;
+      padding-top: 36px;
+      border-top: 1px solid var(--line);
+    }
+
+    .pub-thumb {
+      flex: 0 0 240px;
+      display: block;
+    }
+    .pub-thumb img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pub-title {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin: 0 0 6px;
+    }
+    .pub-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .pub-title a:hover { text-decoration: underline; }
+    .pub-authors {
+      color: var(--ink-soft);
+      margin: 0 0 6px;
+    }
+    .pub-links {
+      color: var(--ink-mute);
+      margin: 0;
+    }
+    .pub-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .pub-links a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 56px 0 48px; }
+      .section { padding: 48px 0; }
+      .pub { flex-direction: column; gap: 16px; }
+      .pub-thumb { flex: 1 1 auto; width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="hero">
+    <div class="container">
+      <h1 class="title">Susie Lu</h1>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title">Project Websites</h2>
+
+        <div class="pub">
+          <a class="pub-thumb" href="https://susie-lu.github.io/driftworld/">
+            <img src="driftworld/videos/Fig/Teaser.png" alt="DriftWorld teaser figure" />
+          </a>
+          <div class="pub-body">
+            <h3 class="pub-title">
+              <a href="https://susie-lu.github.io/driftworld/">DriftWorld: Fast World Modeling through Drifting</a>
+            </h3>
+            <p class="pub-authors"><strong>Susie Lu</strong>, Haonan Chen, Weirui Ye, Yilun Du</p>
+            <p class="pub-links">
+              <a href="https://arxiv.org/abs/2607.15065" target="_blank" rel="noopener noreferrer">Paper</a> |
+              <a href="https://susie-lu.github.io/driftworld/">Project Page</a> |
+              <a href="https://github.com/Susie-Lu/driftworld" target="_blank" rel="noopener noreferrer">Codebase</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</body>
+
+</html>
