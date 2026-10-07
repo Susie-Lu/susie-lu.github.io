@@ -36,21 +36,15 @@
       <div class="container narrow">
         <h2 class="section-title">Abstract</h2>
         <p class="lead">
-          Predictive world models enable robots to plan by imagining the outcomes of their actions, but their value for
-          control hinges on generating many rollouts quickly. This creates a bottleneck for diffusion-based world
-          models: multi-step sampling makes each rollout expensive, limiting large-scale action search at inference
-          time. We introduce <b>DriftWorld</b>, an action-conditioned world model based on <em>drifting generative
-            models</em>. Rather than denoising iteratively at inference, DriftWorld learns an action-conditioned drift
-          during
-          training, allowing it to generate future frames from the current observation and a candidate action sequence
-          in a single forward pass at <b>30+ fps</b>, which is 17× faster on average than diffusion-based
-          baselines. We evaluate DriftWorld on standard vision-based robotic manipulation benchmarks, including
-          Bridge-V2, RT-1, Language Table, Push-T, and Robomimic. By producing rollouts that are both accurate and fast,
-          DriftWorld achieves state-of-the-art decision-making performance with far less inference time than
-          diffusion-based world model baselines. Beyond online control, DriftWorld can also serve as an offline
-          simulator for ranking real-world robot policies, with rollout-based scores correlating with ground truth at up
-          to 0.99. These results show that drifting models are a strong fit for robot world modeling, where fast,
-          high-quality imagination directly supports planning and policy evaluation.
+          Predictive world models enable robots to simulate the visual outcomes of their actions,
+          but state-of-the-art diffusion-based models remain costly because generating each rollout requires
+          multi-step iterative denoising. We introduce <b>DriftWorld</b>, an action-conditioned world model
+          based on <em>drifting generative models</em>. DriftWorld learns a conditional drift during training,
+          enabling it to generate future observations for a given action sequence in a single forward pass during inference.
+          Across Bridge-V2, RT-1, Language Table, Push-T, and Robomimic, DriftWorld runs at <b>over 40 fps</b> and is 12+ times
+          faster than diffusion-based baselines, while matching or improving their visual generation quality.
+          This makes DriftWorld an efficient world model for robot simulation and further enables downstream applications
+          including inference-time action search and offline policy evaluation.
         </p>
       </div>
     </section>
@@ -61,7 +55,7 @@
 
       <figcaption style="margin: 16px auto 0; width: 45%; display: block; text-align: left;">
         <b>Overview of DriftWorld.</b> DriftWorld is an action-conditioned world model based on drifting that generates
-        future frames in a single forward pass. It achieves 30+ fps generation on a single H100 GPU, which is
+        future frames in a single forward pass. It achieves 40+ fps generation on a single H100 GPU, which is
         significantly faster than
         existing models on all five environments. DriftWorld can be used for high-quality generation, efficient
         planning, and offline simulation of policies.
@@ -445,7 +439,7 @@
 
         <h3 class="subsection-title">Generated Videos on Real Robot Datasets: Bridge-V2, RT-1, and Language Table</h3>
         <p class="subsection-desc">
-          DriftWorld generates videos that closely match the ground truth, at inference speeds of 33.3, 38.8, and 36.6
+          DriftWorld generates videos that closely match the ground truth, at inference speeds of 41.3, 51.5, and 60.2
           fps for Bridge-V2, RT-1, and Language Table on a single H100 GPU.
         </p>
 
@@ -1785,7 +1779,7 @@
         <p class="section-desc">
           DriftWorld serves as an accurate offline simulator for policy evaluation,
           successfully predicting both the absolute performance and relative ranking of policies.
-          Our model achieves high correlation coefficients of 0.9916, 0.9250, and 0.9515 between
+          Our model achieves high correlation coefficients of 0.9958, 0.9618, and 0.9755 between
           policy performance in the world model and ground-truth performance on
           Robomimic Lift, Robomimic Can, and Push-T tasks, respectively.
         </p>
